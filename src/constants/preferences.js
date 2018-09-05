@@ -169,7 +169,7 @@ export default {
             buttonColor: '#ffffff',
             errorTextColor: '#fd5960',
             mentionHighlightBg: '#217d95',
-            mentionHighlightLink: '#166de0',
+            mentionHighlightLink: '#ffffff',
             codeTheme: 'monokai',
             mentionBg: '#ffffff',
         },
