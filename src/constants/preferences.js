@@ -151,7 +151,7 @@ export default {
             sidebarBg: '#f75959',
             sidebarText: '#ffffff',
             sidebarUnreadText: '#ffffff',
-            sidebarTextHoverBg: '#fe575d',
+            sidebarTextHoverBg: '#fc666b',
             sidebarTextActiveBorder: '#ffe577',
             sidebarTextActiveColor: '#ffffff',
             sidebarHeaderBg: '#f24c58',
