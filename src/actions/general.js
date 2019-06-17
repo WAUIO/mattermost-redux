@@ -9,10 +9,12 @@ import {loadMe} from './users';
 import {loadRolesIfNeeded} from './roles';
 import {logError} from './errors';
 import {batchActions} from 'redux-batched-actions';
+import {getServerVersion} from 'selectors/entities/general';
+import {isMinimumServerVersion} from 'utils/helpers';
 
-import type {GeneralState} from '../types/general';
-import type {GenericClientResponse, logLevel} from '../types/client4';
-import type {GetStateFunc, DispatchFunc, ActionFunc} from '../types/actions';
+import type {GeneralState} from 'types/general';
+import type {GenericClientResponse, logLevel} from 'types/client4';
+import type {GetStateFunc, DispatchFunc, ActionFunc} from 'types/actions';
 
 export function getPing(): ActionFunc {
     return async (dispatch: DispatchFunc, getState: GetStateFunc) => {
@@ -112,23 +114,25 @@ export function getDataRetentionPolicy(): ActionFunc {
 }
 
 export function getLicenseConfig(): ActionFunc {
-    return bindClientFunc(
-        Client4.getClientLicenseOld,
-        GeneralTypes.CLIENT_LICENSE_REQUEST,
-        [GeneralTypes.CLIENT_LICENSE_RECEIVED, GeneralTypes.CLIENT_LICENSE_SUCCESS],
-        GeneralTypes.CLIENT_LICENSE_FAILURE
-    );
+    return bindClientFunc({
+        clientFunc: Client4.getClientLicenseOld,
+        onRequest: GeneralTypes.CLIENT_LICENSE_REQUEST,
+        onSuccess: [GeneralTypes.CLIENT_LICENSE_RECEIVED, GeneralTypes.CLIENT_LICENSE_SUCCESS],
+        onFailure: GeneralTypes.CLIENT_LICENSE_FAILURE,
+    });
 }
 
 export function logClientError(message: string, level: logLevel = 'ERROR') {
-    return bindClientFunc(
-        Client4.logClientError,
-        GeneralTypes.LOG_CLIENT_ERROR_REQUEST,
-        GeneralTypes.LOG_CLIENT_ERROR_SUCCESS,
-        GeneralTypes.LOG_CLIENT_ERROR_FAILURE,
-        message,
-        level
-    );
+    return bindClientFunc({
+        clientFunc: Client4.logClientError,
+        onRequest: GeneralTypes.LOG_CLIENT_ERROR_REQUEST,
+        onSuccess: GeneralTypes.LOG_CLIENT_ERROR_SUCCESS,
+        onFailure: GeneralTypes.LOG_CLIENT_ERROR_FAILURE,
+        params: [
+            message,
+            level,
+        ],
+    });
 }
 
 export function setAppState(state: $PropertyType<GeneralState, 'appState'>): ActionFunc {
@@ -166,12 +170,12 @@ export function setStoreFromLocalData(data: { token: string, url: string }): Act
 }
 
 export function getSupportedTimezones() {
-    return bindClientFunc(
-        Client4.getTimezones,
-        GeneralTypes.SUPPORTED_TIMEZONES_REQUEST,
-        [GeneralTypes.SUPPORTED_TIMEZONES_RECEIVED, GeneralTypes.SUPPORTED_TIMEZONES_SUCCESS],
-        GeneralTypes.SUPPORTED_TIMEZONES_FAILURE,
-    );
+    return bindClientFunc({
+        clientFunc: Client4.getTimezones,
+        onRequest: GeneralTypes.SUPPORTED_TIMEZONES_REQUEST,
+        onSuccess: [GeneralTypes.SUPPORTED_TIMEZONES_RECEIVED, GeneralTypes.SUPPORTED_TIMEZONES_SUCCESS],
+        onFailure: GeneralTypes.SUPPORTED_TIMEZONES_FAILURE,
+    });
 }
 
 export function setUrl(url: string) {
@@ -183,16 +187,23 @@ export function getRedirectLocation(url: string): ActionFunc {
     return async (dispatch: DispatchFunc, getState: GetStateFunc) => {
         dispatch({type: GeneralTypes.REDIRECT_LOCATION_REQUEST, data: {}}, getState);
 
-        let data: GenericClientResponse;
+        let pendingData: Promise<Object>;
+        if (isMinimumServerVersion(getServerVersion(getState()), 5, 3)) {
+            pendingData = Client4.getRedirectLocation(url);
+        } else {
+            pendingData = Promise.resolve({location: url});
+        }
+
+        let data;
         try {
-            data = await Client4.getRedirectLocation(url);
+            data = await pendingData;
         } catch (error) {
             forceLogoutIfNecessary(error, dispatch, getState);
-            dispatch({type: GeneralTypes.REDIRECT_LOCATION_FAILURE, data: error}, getState);
+            dispatch({type: GeneralTypes.REDIRECT_LOCATION_FAILURE, data: {error, url}}, getState);
             return {error};
         }
 
-        dispatch({type: GeneralTypes.REDIRECT_LOCATION_SUCCESS, data}, getState);
+        dispatch({type: GeneralTypes.REDIRECT_LOCATION_SUCCESS, data: {...data, url}}, getState);
         return {data};
     };
 }

@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {combineReducers} from 'redux';
-import {ChannelTypes, UserTypes, SchemeTypes} from 'action_types';
+import {ChannelTypes, UserTypes, SchemeTypes, GroupTypes} from 'action_types';
 import {General} from 'constants';
 
 function channelListToSet(state, action) {
@@ -40,15 +40,21 @@ function currentChannelId(state = '', action) {
 function channels(state = {}, action) {
     switch (action.type) {
     case ChannelTypes.RECEIVED_CHANNEL:
+        if (state[action.data.id] && action.data.type === General.DM_CHANNEL) {
+            action.data.display_name = action.data.display_name || state[action.data.id].display_name;
+        }
         return {
             ...state,
             [action.data.id]: action.data,
         };
-
     case ChannelTypes.RECEIVED_CHANNELS:
+    case ChannelTypes.RECEIVED_ALL_CHANNELS:
     case SchemeTypes.RECEIVED_SCHEME_CHANNELS: {
         const nextState = {...state};
         for (const channel of action.data) {
+            if (state[channel.id] && channel.type === General.DM_CHANNEL) {
+                channel.display_name = channel.display_name || state[channel.id].display_name;
+            }
             nextState[channel.id] = channel;
         }
         return nextState;
@@ -402,6 +408,43 @@ function stats(state = {}, action) {
     }
 }
 
+function groupsAssociatedToChannel(state = {}, action) {
+    switch (action.type) {
+    case GroupTypes.RECEIVED_GROUPS_ASSOCIATED_TO_CHANNEL: {
+        const {channelID, groups} = action.data;
+        const nextState = {...state};
+        const associatedGroupIDs = new Set(state[channelID] || []);
+        for (const group of groups) {
+            associatedGroupIDs.add(group.id);
+        }
+        nextState[channelID] = Array.from(associatedGroupIDs);
+        return nextState;
+    }
+    case GroupTypes.RECEIVED_ALL_GROUPS_ASSOCIATED_TO_CHANNEL: {
+        const {channelID, groups} = action.data;
+        const nextState = {...state};
+        const associatedGroupIDs = new Set([]);
+        for (const group of groups) {
+            associatedGroupIDs.add(group.id);
+        }
+        nextState[channelID] = Array.from(associatedGroupIDs);
+        return nextState;
+    }
+    case GroupTypes.RECEIVED_GROUPS_NOT_ASSOCIATED_TO_CHANNEL: {
+        const {channelID, groups} = action.data;
+        const nextState = {...state};
+        const associatedGroupIDs = new Set(state[channelID] || []);
+        for (const group of groups) {
+            associatedGroupIDs.delete(group.id);
+        }
+        nextState[channelID] = Array.from(associatedGroupIDs);
+        return nextState;
+    }
+    default:
+        return state;
+    }
+}
+
 function updateChannelMemberSchemeRoles(state, action) {
     const {channelId, userId, isSchemeUser, isSchemeAdmin} = action.data;
     const channel = state[channelId];
@@ -443,4 +486,6 @@ export default combineReducers({
 
     // object where every key is the channel id and has an object with the channel stats
     stats,
+
+    groupsAssociatedToChannel,
 });

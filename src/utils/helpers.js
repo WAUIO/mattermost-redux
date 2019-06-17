@@ -1,10 +1,11 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
+// @flow
 
 import {createSelectorCreator, defaultMemoize} from 'reselect';
 import shallowEqual from 'shallow-equals';
 
-export function memoizeResult(func) {
+export function memoizeResult(func: Function): Function {
     let lastArgs = null;
     let lastResult = null;
 
@@ -35,7 +36,7 @@ export const createShallowSelector = createSelectorCreator(defaultMemoize, shall
 // versions, and a non-equal minor version will ignore dot version.
 // currentVersion is a string, e.g '4.6.0'
 // minMajorVersion, minMinorVersion, minDotVersion are integers
-export const isMinimumServerVersion = (currentVersion, minMajorVersion = 0, minMinorVersion = 0, minDotVersion = 0) => {
+export const isMinimumServerVersion = (currentVersion: string, minMajorVersion: number = 0, minMinorVersion: number = 0, minDotVersion: number = 0): boolean => {
     if (!currentVersion || typeof currentVersion !== 'string') {
         return false;
     }
@@ -74,7 +75,7 @@ export const isMinimumServerVersion = (currentVersion, minMajorVersion = 0, minM
 };
 
 // Generates a RFC-4122 version 4 compliant globally unique identifier.
-export function generateId() {
+export function generateId(): string {
     // implementation taken from http://stackoverflow.com/a/2117523
     var id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx';
 
@@ -94,7 +95,7 @@ export function generateId() {
     return id;
 }
 
-export function isEmail(email) {
+export function isEmail(email: string): boolean {
     // writing a regex to match all valid email addresses is really, really hard. (see http://stackoverflow.com/a/201378)
     // this regex ensures:
     // - at least one character that is not a space, comma, or @ symbol
@@ -102,4 +103,23 @@ export function isEmail(email) {
     // - followed by at least one character that is not a space, comma, or @ symbol
     // this prevents <Outlook Style> outlook.style@domain.com addresses and multiple comma-separated addresses from being accepted
     return (/^[^ ,@]+@[^ ,@]+$/).test(email);
+}
+
+export function buildQueryString(parameters: {}): string {
+    const keys = Object.keys(parameters);
+    if (keys.length === 0) {
+        return '';
+    }
+
+    let query = '?';
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        query += key + '=' + encodeURIComponent(parameters[key]);
+
+        if (i < keys.length - 1) {
+            query += '&';
+        }
+    }
+
+    return query;
 }
