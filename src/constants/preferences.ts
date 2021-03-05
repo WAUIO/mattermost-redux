@@ -173,6 +173,7 @@ const Preferences = {
             sidebarTextActiveBorder: '#3f617a',
             sidebarTextActiveColor: '#ffffff',
             sidebarHeaderBg: '#165d74',
+            sidebarTeamBarBg: '#181818',
             sidebarHeaderTextColor: '#ffffff',
             onlineIndicator: '#2a9521',
             awayIndicator: '#ffbc42',
